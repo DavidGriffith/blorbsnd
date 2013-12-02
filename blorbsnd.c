@@ -60,13 +60,17 @@ void playaiff(bb_result_t result)
     uint32 count;
 
     printf("Attempting to play %zu bytes.\n", result.length);
+    printf("Chunknum: %d\n", result.chunknum);
 
     count = 0;
     buffer = malloc(sizeof(char) * result.length);
+
+    fseek(blorbFile, result.data.startpos, SEEK_SET);
+
     while (count < result.length) {
 	count++;
 	fread(buffer, sizeof(char),
-		result.length, result.data.startpos);
+		result.length, blorbFile);
     }
 
     ao_play(device, buffer, result.length);
