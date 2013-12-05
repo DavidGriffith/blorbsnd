@@ -22,11 +22,11 @@ FILE *blorbFile;
         ((int)((b)[2]) << 8) + (int)((b)[3]))
 
 typedef struct {
-    short         channels;
-    short         samplesize;
-    double        samplerate;
-    unsigned long samplecount;
-    int           valid;
+    short		channels;
+    short		samplesize;
+    int			samplerate;
+    int			valid;
+    unsigned long	samplecount;
 } aiffinfo;
 
 aiffinfo getaiffinfo(FILE *);
@@ -59,8 +59,7 @@ int main(int argc, char *argv[])
     if (bb_load_resource_snd(blorbMap,bb_method_FilePos,&resource,number,&info) == bb_err_None) {
 	printf("Sound resource %d is ",number);
 	if (blorbMap->chunks[resource.chunknum].type == bb_make_id('F','O','R','M')) {
-	    printf("an AIFF sample.\n");
-	    printf("Size: %zu bytes.\n", resource.length);
+	    printf("an AIFF sample of %zu bytes.\n", resource.length);
 	    playaiff(resource);
 	} else if (blorbMap->chunks[resource.chunknum].type == bb_make_id('M','O','D',' ')) {
 	    printf("Sound is a MOD song.\n");
@@ -86,9 +85,6 @@ void playaiff(bb_result_t result)
     ao_device *device;
     ao_sample_format format;
 
-    printf("Attempting to play %zu bytes.\n", result.length);
-    printf("Chunknum: %d\n", result.chunknum);
-
     if (fseek(blorbFile, result.data.startpos, SEEK_SET) != 0) {
         printf("Seek failure #1\n");
         exit(1);
@@ -101,6 +97,7 @@ void playaiff(bb_result_t result)
         exit(1);
     }
 
+    printf("Chunknum:    %d\n", result.chunknum);
     printf("Channels:    %d\n", info.channels);
     printf("Frames:      %d\n", info.samplecount);
     printf("Rate:        %d\n", info.samplerate);
