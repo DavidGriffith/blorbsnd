@@ -122,15 +122,12 @@ void playaiff(bb_result_t result)
         exit(1);
     }
 
-    buffer = malloc(sizeof(char) *  info.samplecount);
+    buffer = malloc(sizeof(char) * info.samplecount);
+    fread(buffer, sizeof(char), info.samplecount, blorbFile);
+    ao_play(device, buffer, info.samplecount * sizeof(char));
 
-    num = fread(buffer, sizeof(char), info.samplecount, blorbFile);
-
-    printf("stuff read: %d\n", num);
-
-//    ao_play(device, buffer, info.samplecount);
-    ao_play(device, buffer, info.samplecount + 1100);
-
+    ao_close(device);
+    ao_shutdown();
 }
 
 
