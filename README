@@ -13,5 +13,5 @@ learned in the other two series to play AIFF, MOD, or OGG files embedded
 in a Blorb file.  A Blorb file is an IFF type that is used to wrap up 
 audio and graphics data along with a game file for play on an 
 interactive fiction interpreter.  Several interpreters already support 
-this, but Unix Frotz does not.  Getting Unix Frotz to do this is the 
-overall reason for these exercises.
+this, but Unix Frotz (https://github.com/DavidGriffith/frotz) does not.  
+Getting Unix Frotz to do this is the overall reason for these exercises.
