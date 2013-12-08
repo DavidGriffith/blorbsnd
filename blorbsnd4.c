@@ -1,7 +1,7 @@
 /*
  * Quick test of loading sounds from a Blorb file
  *
- * Exercise 4: Figure out why OGG files won't play.
+ * Exercise 4: Adding MOD support.
  *
  */
 
@@ -11,6 +11,7 @@
 #include <math.h>
 #include <ao/ao.h>
 #include <sndfile.h>
+#include <libmodplug/modplug.h>
 #include "blorb.h"
 #include "blorblow.h"
 
@@ -18,7 +19,9 @@
 
 void usage(void);
 int playsample(FILE *, bb_result_t, int);
+int playmod(FILE *, bb_result_t, int);
 int mypower(int, int);
+char *getfiledata(FILE *, long *);
 
 ao_device *device;
 ao_sample_format format;
@@ -53,13 +56,15 @@ int main(int argc, char *argv[])
 	if (blorbMap->chunks[resource.chunknum].type == bb_make_id('F','O','R','M')) {
 	    printf("an AIFF sample.\n");
 	    printf("Size: %zu bytes.\n", resource.length);
-	    playfile(blorbFile, resource, volume);
+	    playsample(blorbFile, resource, volume);
 	} else if (blorbMap->chunks[resource.chunknum].type == bb_make_id('M','O','D',' ')) {
 	    printf("a MOD file.\n");
+	    printf("Size: %zu bytes.\n", resource.length);
+	    playmod(blorbFile, resource, volume);
 	} else if (blorbMap->chunks[resource.chunknum].type == bb_make_id('O','G','G','V')) {
 	    printf("an OGG compressed sample.\n");
 	    printf("Size: %zu bytes.\n", resource.length);
-	    playfile(blorbFile, resource, volume);
+	    playsample(blorbFile, resource, volume);
 	} else
 	    printf("something else.  This should not happen.\n");
     } else
@@ -87,7 +92,7 @@ void usage(void)
 
 
 
-int playfile(FILE *fp, bb_result_t result, int vol)
+int playsample(FILE *fp, bb_result_t result, int vol)
 {
     int default_driver;
     int frames_read;
@@ -162,4 +167,110 @@ int playfile(FILE *fp, bb_result_t result, int vol)
     printf("Finished\n");
 
     return 0;
+}
+
+
+int playmod(FILE *fp, bb_result_t result, int vol)
+{
+    unsigned char *buffer;
+    int modlen;
+    int volcount;
+
+    int default_driver;
+    ao_device *device;
+    ao_sample_format format;
+
+    char *filedata;
+    long size;
+    ModPlugFile *mod;
+    ModPlug_Settings settings;
+
+    long original_offset;
+
+    original_offset = ftell(fp);
+    fseek(fp, result.data.startpos, SEEK_SET);
+
+    ao_initialize();
+    default_driver = ao_default_driver_id();
+
+    ModPlug_GetSettings(&settings);
+
+    memset(&format, 0, sizeof(ao_sample_format));
+
+    format.byte_format = AO_FMT_NATIVE;
+    format.bits = 16;
+    format.channels = 2;
+    format.rate = 44100;
+
+    /* Note: All "Basic Settings" must be set before ModPlug_Load. */
+    settings.mResamplingMode = MODPLUG_RESAMPLE_FIR; /* RESAMP */
+    settings.mChannels = 2;
+    settings.mBits = 16;
+    settings.mFrequency = 44100;
+    settings.mStereoSeparation = 128;
+    settings.mMaxMixChannels = 256;
+
+    /* insert more setting changes here */
+    ModPlug_SetSettings(&settings);
+
+    /* remember to free() filedata later */
+    filedata = getfiledata(fp, &size);
+
+    mod = ModPlug_Load(filedata, size);
+    if (!mod) {
+	printf("Unable to load module\n");
+	free(filedata);
+	return 1;
+    }
+
+    device = ao_open_live(default_driver, &format, NULL /* no options */);
+    if (device == NULL) {
+        printf("Error opening sound device.\n");
+        return 1;
+    }
+
+    if (vol < 1) vol = 1;
+    if (vol > 8) vol = 8;
+
+    ModPlug_SetMasterVolume(mod, mypower(2, vol));
+
+    buffer = malloc(BUFFSIZE * sizeof(char));
+    modlen = 1;
+    while (modlen != 0) {
+	if (modlen == 0) break;
+	modlen = ModPlug_Read(mod, buffer, BUFFSIZE * sizeof(char));
+	if (modlen > 0 && ao_play(device, buffer, modlen * sizeof(char)) == 0) {
+	    perror("audio write");
+	    exit(1);
+	}
+    }
+    free(buffer);
+    ao_close(device);
+    ao_shutdown();
+
+    fseek(fp, original_offset, SEEK_SET);
+
+    printf("Finished\n");
+
+    return 0;
+}
+
+/*
+ * libmodplug requires the whole file to be pulled into memory.
+ * This function does that and then closes the file.
+ */
+char *getfiledata(FILE *fp, long *size)
+{
+    char *data;
+    long offset;
+
+    offset = ftell(fp);
+    fseek(fp, 0L, SEEK_END);
+    (*size) = ftell(fp);
+    fseek(fp, offset, SEEK_SET);
+    data = (char*)malloc(*size);
+    fread(data, *size, sizeof(char), fp);
+    fseek(fp, offset, SEEK_SET);
+
+    return(data);
 }
