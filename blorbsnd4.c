@@ -86,6 +86,7 @@ void usage(void)
 }
 
 
+
 int playfile(FILE *fp, bb_result_t result, int vol)
 {
     int default_driver;
@@ -96,8 +97,6 @@ int playfile(FILE *fp, bb_result_t result, int vol)
     int *buffer;
     long filestart;
 
-    int fd;
-
     int volcount;
 
     ao_device *device;
@@ -106,28 +105,16 @@ int playfile(FILE *fp, bb_result_t result, int vol)
     SNDFILE     *sndfile;
     SF_INFO     sf_info;
 
-long offset;
-char mybuf[1024];
 
     ao_initialize();
     default_driver = ao_default_driver_id();
 
-
-    offset = ftell(fp);
-    printf("Offset:   %d\n", offset);
-
-    fseek(fp, result.data.startpos+29, SEEK_SET);
-    fread(mybuf, 1, 10, fp);
-    mybuf[10] = 0;
-    fseek(fp, offset, SEEK_SET);
-
-    printf("mybuf:   |%s|\n", mybuf);
-
-
-    fd = fileno(fp);
-    lseek(fd, result.data.startpos + 29, SEEK_SET);
     sf_info.format = 0;
-    sndfile = sf_open_fd(fd, SFM_READ, &sf_info, 0);
+
+    filestart = ftell(fp);
+
+    lseek(fileno(fp), result.data.startpos, SEEK_SET);
+    sndfile = sf_open_fd(fileno(fp), SFM_READ, &sf_info, 0);
 
     memset(&format, 0, sizeof(ao_sample_format));
 
@@ -166,8 +153,9 @@ char mybuf[1024];
         ao_play(device, (char *)buffer, frames_read * sizeof(int));
 	toread = toread - frames_read;
     }
-    free(buffer);
 
+    free(buffer);
+    fseek(fp, filestart, SEEK_SET);
     ao_close(device);
     sf_close(sndfile);
     ao_shutdown();
