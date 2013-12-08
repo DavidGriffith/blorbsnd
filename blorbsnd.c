@@ -1,5 +1,8 @@
 /*
  * Quick test of loading sounds from a Blorb file
+ *
+ * Exercise 1: Parsing AIFF headers manually.
+ *
  */
 
 #include <stdio.h>
