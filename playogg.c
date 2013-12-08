@@ -50,7 +50,7 @@ int playogg(FILE *fp, int vol)
     ogg_int64_t toread;
     ogg_int64_t frames_read;
     ogg_int64_t count;
-    unsigned char *buffer;
+    char *buffer;
     int volcount;
 
     vorbis_info *info;
@@ -106,6 +106,10 @@ int playogg(FILE *fp, int vol)
 	    count = BUFFSIZE;
 
 	frames_read = ov_read(&vf, buffer, count, 0, 2, 1, &current_section);
+
+	for (volcount = 0; volcount <= frames_read; volcount++)
+	    buffer[volcount] /= mypower(2, -vol + 8);
+
 	ao_play(device, (char *)buffer, frames_read);
 	toread -= frames_read;
     }
