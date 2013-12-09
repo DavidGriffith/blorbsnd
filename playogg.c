@@ -50,7 +50,7 @@ int playogg(FILE *fp, int vol)
     ogg_int64_t toread;
     ogg_int64_t frames_read;
     ogg_int64_t count;
-    char *buffer;
+    void *buffer;
     int volcount;
 
     vorbis_info *info;
@@ -92,7 +92,7 @@ int playogg(FILE *fp, int vol)
     if (vol < 1) vol = 1;
     if (vol > 8) vol = 8;
 
-    buffer = malloc(BUFFSIZE * sizeof(char));
+    buffer = malloc(BUFFSIZE * sizeof(int16_t));
 
     toread = ov_pcm_total(&vf, -1);
     frames_read = 0;
@@ -100,15 +100,16 @@ int playogg(FILE *fp, int vol)
     printf("Total frames:     %zu\n", toread);
 
     while (toread > 0) {
-	if (toread < BUFFSIZE * sizeof(char))
+	if (toread < BUFFSIZE * sizeof(int16_t))
 	    count = toread;
 	else
 	    count = BUFFSIZE;
 
-	frames_read = ov_read(&vf, buffer, count, 0, 2, 1, &current_section);
+	frames_read = ov_read(&vf, (char *)buffer, count, 0, 2, 1, 
+&current_section);
 
-	for (volcount = 0; volcount <= frames_read; volcount++)
-	    buffer[volcount] /= mypower(2, -vol + 8);
+	for (volcount = 0; volcount <= frames_read / 2; volcount++)
+	    ((int16_t *) buffer)[volcount] /= mypower(2, -vol + 8);
 
 	ao_play(device, (char *)buffer, frames_read);
 	toread -= frames_read;
