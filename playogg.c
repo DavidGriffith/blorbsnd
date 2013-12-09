@@ -84,6 +84,8 @@ static int playogg(FILE *fp, int vol)
     if (device == NULL) {
         printf("Error opening sound device.\n");
 	ov_clear(&vf);
+	free(info->codec_setup);
+	free(info);
         return 1;
     }
 
@@ -107,6 +109,8 @@ static int playogg(FILE *fp, int vol)
     ao_close(device);
     ao_shutdown();
     ov_clear(&vf);
+    free(info->codec_setup);
+    free(info);
     free(buffer);
     printf("Finished\n");
 
