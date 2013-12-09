@@ -14,7 +14,8 @@
 #include <vorbis/codec.h>
 #include <vorbis/vorbisfile.h>
 
-#define BUFFSIZE 4096
+//#define BUFFSIZE 4096
+#define BUFFSIZE 8192
 
 int playmod(FILE *, int);
 int mypower(int, int);
@@ -51,6 +52,7 @@ int playogg(FILE *fp, int vol)
     ogg_int64_t frames_read;
     ogg_int64_t count;
     void *buffer;
+
     int volcount;
 
     vorbis_info *info;
@@ -68,14 +70,27 @@ int playogg(FILE *fp, int vol)
 
     memset(&format, 0, sizeof(ao_sample_format));
 
-    if(ov_open(fp, &vf, NULL, 0) < 0) {
-	fprintf(stderr,"Input does not appear to be an Ogg bitstream.\n");
+    count = ov_open_callbacks(fp, &vf, NULL, 0, OV_CALLBACKS_NOCLOSE);
+    if (count < 0) {
+	switch(count) {
+	case OV_EREAD: printf("A read from media returned an error.\n");
+	break;
+	case OV_ENOTVORBIS: printf("Bitstream does not contain any Vorbis data.\n");
+	break;
+	case OV_EVERSION: printf("Vorbis version mismatch.\n");
+	break;
+	case OV_EBADHEADER: printf("Invalid Vorbis bitstream header.\n");
+	break;
+	case OV_EFAULT: printf("Internal logic fault.\n");
+	break;
+	default: printf("Something else happened.\n");
+	}
 	exit(1);
     }
 
     info = ov_info(&vf, -1);
 
-    format.byte_format = AO_FMT_NATIVE;
+    format.byte_format = AO_FMT_LITTLE;
     format.bits = 16;
     format.channels = info->channels;
     format.rate = info->rate;
@@ -92,32 +107,37 @@ int playogg(FILE *fp, int vol)
     if (vol < 1) vol = 1;
     if (vol > 8) vol = 8;
 
-    buffer = malloc(BUFFSIZE * sizeof(int16_t));
+    buffer = malloc(BUFFSIZE * info->channels * sizeof(int16_t));
 
     toread = ov_pcm_total(&vf, -1);
     frames_read = 0;
 
     printf("Total frames:     %zu\n", toread);
 
-    while (toread > 0) {
+    do {
+/*
 	if (toread < BUFFSIZE * sizeof(int16_t))
 	    count = toread;
 	else
 	    count = BUFFSIZE;
+*/
 
-	frames_read = ov_read(&vf, (char *)buffer, count, 0, 2, 1, 
-&current_section);
+frames_read = ov_read(&vf, (char *)buffer, BUFFSIZE, 
+0,2,1,&current_section);
+//printf("Frames to go:    %zu\n", toread);
+printf("Frames read:     %zu\n\n", frames_read);
 
 	for (volcount = 0; volcount <= frames_read / 2; volcount++)
 	    ((int16_t *) buffer)[volcount] /= mypower(2, -vol + 8);
 
 	ao_play(device, (char *)buffer, frames_read);
-	toread -= frames_read;
-    }
-    free(buffer);
-    ov_clear(&vf);
+    } while (frames_read > 0);
+
     ao_close(device);
     ao_shutdown();
+    ov_clear(&vf);
+
+    free(buffer);
     printf("Finished\n");
 
     return 0;
