@@ -101,6 +101,9 @@ int playfile(FILE *fp, int vol)
 
         frames_read = sf_read_int(sndfile, buffer, count);
 
+printf("Frames to go:    %zu\n", toread);
+printf("Frames read:     %zu\n\n", frames_read);
+
 	for (volcount = 0; volcount <= frames_read; volcount++)
 	    buffer[volcount] /= mypower(2, -vol + 8);
 
