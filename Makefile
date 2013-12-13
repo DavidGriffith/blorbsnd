@@ -2,6 +2,7 @@ CC = gcc
 TARGET = blorbsnd5
 OBJECT = $(TARGET).o blorblib.o
 FLAGS = -lao -ldl -lm
+WARN = -Wall
 
 SNDFLAGS = -lsndfile
 MODFLAGS = -lmodplug
@@ -17,7 +18,7 @@ $(TARGET): $(OBJECT)
 	$(CC) -o $(TARGET) $(OBJECT) $(FLAGS) $(MYFLAGS)
 
 $(OBJECT): %.o: %.c
-	$(CC) -o $@ -c $<
+	$(CC) -o $@ -c $< $(WARN)
 
 
 playaiff1: playaiff1.o

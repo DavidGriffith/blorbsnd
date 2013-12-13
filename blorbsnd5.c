@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <unistd.h>
 #include <ao/ao.h>
 #include <sndfile.h>
 #include <vorbis/codec.h>
@@ -37,7 +38,6 @@ int main(int argc, char *argv[])
     int volume = 8;
     bb_map_t *blorbMap;
     bb_result_t resource;
-//    bb_aux_sound_t *info;
 
     if (argv[2])
 	number = atoi(argv[2]);
@@ -108,7 +108,6 @@ int playaiff(FILE *fp, bb_result_t result, int vol)
     int frames_read;
     int count;
     int toread;
-    int readnow;
     int *buffer;
     long filestart;
 
@@ -158,12 +157,9 @@ int playaiff(FILE *fp, bb_result_t result, int vol)
 	    count = toread;
 	else
 	    count = BUFFSIZE * sf_info.channels;
-
         frames_read = sf_read_int(sndfile, buffer, count);
-
 	for (volcount = 0; volcount <= frames_read; volcount++)
 	    buffer[volcount] /= volfactor;
-
         ao_play(device, (char *)buffer, frames_read * sizeof(int));
 	toread = toread - frames_read;
     }
@@ -183,7 +179,6 @@ int playmod(FILE *fp, bb_result_t result, int vol)
 {
     unsigned char *buffer;
     int modlen;
-    int volcount;
 
     int default_driver;
     ao_device *device;
@@ -248,7 +243,7 @@ int playmod(FILE *fp, bb_result_t result, int vol)
     while (modlen != 0) {
 	if (modlen == 0) break;
 	modlen = ModPlug_Read(mod, buffer, BUFFSIZE * sizeof(char));
-	if (modlen > 0 && ao_play(device, buffer, modlen * sizeof(char)) == 0) {
+	if (modlen > 0 && ao_play(device, (char *) buffer, modlen * sizeof(char)) == 0) {
 	    perror("audio write");
 	    exit(1);
 	}
@@ -337,15 +332,15 @@ int playogg(FILE *fp, bb_result_t result, int vol)
 
     buffer = malloc(BUFFSIZE * format.channels * sizeof(int16_t));
 
-    toread = ov_pcm_total(&vf, -1) * 2 * format.channels;
     frames_read = 0;
+    toread = ov_pcm_total(&vf, -1) * 2 * format.channels;
     count = 0;
 
     while (count < toread) {
 	frames_read = ov_read(&vf, (char *)buffer, BUFFSIZE, 0,2,1,&current_section);
 	for (volcount = 0; volcount <= frames_read / 2; volcount++)
 	    ((int16_t *) buffer)[volcount] /= volfactor;
-	ao_play(device, (char *)buffer, frames_read);
+	ao_play(device, (char *)buffer, frames_read * sizeof(char));
 	count += frames_read;
     }
 
