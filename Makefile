@@ -1,20 +1,20 @@
 CC = gcc
-TARGET = blorbsnd4
+TARGET = blorbsnd5
 OBJECT = $(TARGET).o blorblib.o
 FLAGS = -lao -ldl -lm
 
 SNDFLAGS = -lsndfile
-
 MODFLAGS = -lmodplug
-
 OGGFLAGS = -lvorbisfile
+
+MYFLAGS = $(SNDFLAGS) $(MODFLAGS) $(OGGFLAGS)
 
 .SUFFIXES:
 .SUFFIXES: .c .o .h
 
 
 $(TARGET): $(OBJECT)
-	$(CC) -o $(TARGET) $(OBJECT) $(FLAGS)
+	$(CC) -o $(TARGET) $(OBJECT) $(FLAGS) $(MYFLAGS)
 
 $(OBJECT): %.o: %.c
 	$(CC) -o $@ -c $<
@@ -33,6 +33,9 @@ playaiff4: playaiff4.o
 	$(CC) -o $@ $< $(FLAGS) $(SNDFLAGS)
 
 playaiff5: playaiff5.o
+	$(CC) -o $@ $< $(FLAGS) $(SNDFLAGS)
+
+playaiff6: playaiff6.o
 	$(CC) -o $@ $< $(FLAGS) $(SNDFLAGS)
 
 playmod1: playmod1.o
