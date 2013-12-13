@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
     int volume = 8;
     bb_map_t *blorbMap;
     bb_result_t resource;
-    bb_aux_sound_t *info;
+//    bb_aux_sound_t *info;
 
     if (argv[2])
 	number = atoi(argv[2]);
@@ -113,6 +113,7 @@ int playaiff(FILE *fp, bb_result_t result, int vol)
     long filestart;
 
     int volcount;
+    int volfactor;
 
     ao_device *device;
     ao_sample_format format;
@@ -123,20 +124,11 @@ int playaiff(FILE *fp, bb_result_t result, int vol)
     ao_initialize();
     default_driver = ao_default_driver_id();
 
-    sf_info.samplerate = 0;
-    sf_info.channels = 0;
     sf_info.format = 0;
-    sf_info.sections = 0;
-    sf_info.seekable = 0;
-
-    char stuff[10];
 
     filestart = ftell(fp);
-
     lseek(fileno(fp), result.data.startpos, SEEK_SET);
-
     sndfile = sf_open_fd(fileno(fp), SFM_READ, &sf_info, 0);
-
     memset(&format, 0, sizeof(ao_sample_format));
 
     format.byte_format = AO_FMT_NATIVE;
@@ -155,6 +147,7 @@ int playaiff(FILE *fp, bb_result_t result, int vol)
 
     if (vol < 1) vol = 1;
     if (vol > 8) vol = 8;
+    volfactor = mypower(2, -vol + 8);
 
     buffer = malloc(BUFFSIZE * sf_info.channels * sizeof(int));
     frames_read = 0;
@@ -169,7 +162,7 @@ int playaiff(FILE *fp, bb_result_t result, int vol)
         frames_read = sf_read_int(sndfile, buffer, count);
 
 	for (volcount = 0; volcount <= frames_read; volcount++)
-	    buffer[volcount] /= mypower(2, -vol + 8);
+	    buffer[volcount] /= volfactor;
 
         ao_play(device, (char *)buffer, frames_read * sizeof(int));
 	toread = toread - frames_read;
@@ -310,6 +303,7 @@ int playogg(FILE *fp, bb_result_t result, int vol)
     ao_sample_format format;
 
     int volcount;
+    int volfactor;
 
     ao_initialize();
     default_driver = ao_default_driver_id();
@@ -328,7 +322,7 @@ int playogg(FILE *fp, bb_result_t result, int vol)
     format.byte_format = AO_FMT_LITTLE;
     format.bits = 16;
     format.channels = info->channels;
-    format.rate = (int)info->rate;
+    format.rate = info->rate;
 
     device = ao_open_live(default_driver, &format, NULL /* no options */);
     if (device == NULL) {
@@ -339,6 +333,7 @@ int playogg(FILE *fp, bb_result_t result, int vol)
 
     if (vol < 1) vol = 1;
     if (vol > 8) vol = 8;
+    volfactor = mypower(2, -vol + 8);
 
     buffer = malloc(BUFFSIZE * format.channels * sizeof(int16_t));
 
@@ -349,7 +344,7 @@ int playogg(FILE *fp, bb_result_t result, int vol)
     while (count < toread) {
 	frames_read = ov_read(&vf, (char *)buffer, BUFFSIZE, 0,2,1,&current_section);
 	for (volcount = 0; volcount <= frames_read / 2; volcount++)
-	    ((int16_t *) buffer)[volcount] /= mypower(2, -vol + 8);
+	    ((int16_t *) buffer)[volcount] /= volfactor;
 	ao_play(device, (char *)buffer, frames_read);
 	count += frames_read;
     }
