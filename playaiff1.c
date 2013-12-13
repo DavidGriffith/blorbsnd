@@ -26,7 +26,7 @@ ao_sample_format format;
 typedef struct {
     short	  channels;
     short	  samplesize;
-    double	  samplerate;
+    int	  	  samplerate;
     unsigned long samplecount;
     int		  valid;
 } aiffinfo;
@@ -64,6 +64,12 @@ int main(int argc, char *argv[])
 	printf("Invalid AIFF file.\n");
 	exit(1);
     }
+
+printf("bits:      %d\n", info.samplesize);
+printf("channels:  %d\n", info.channels);
+printf("rate:      %d\n", info.samplerate);
+
+
 
     format.bits = info.samplesize;
     format.channels = info.channels;
