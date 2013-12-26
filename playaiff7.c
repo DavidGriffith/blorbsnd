@@ -106,7 +106,7 @@ printf("Frames read:     %zu\n\n", frames_read);
 	for (volcount = 0; volcount <= frames_read; volcount++)
 	    buffer[volcount] /= mypower(2, -vol + 8);
 
-        ao_play(device, (char *)buffer, frames_read * sizeof(int));
+        ao_play(device, (char *)buffer, frames_read * sizeof(short));
 	toread = toread - frames_read;
     }
 
