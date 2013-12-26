@@ -1,14 +1,14 @@
 /*
  * Quick test of loading sounds from a Blorb file
  *
- * Exercise 4: Adding MOD support.
+ * Exercise 5: All three formats.
  *
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+//#include <math.h>
 #include <unistd.h>
 #include <ao/ao.h>
 #include <sndfile.h>

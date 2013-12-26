@@ -39,6 +39,9 @@ playaiff5: playaiff5.o
 playaiff6: playaiff6.o
 	$(CC) -o $@ $< $(FLAGS) $(SNDFLAGS)
 
+playaiff7: playaiff7.o
+	$(CC) -o $@ $< $(FLAGS) $(SNDFLAGS)
+
 playmod1: playmod1.o
 	$(CC) -o $@ $< $(FLAGS) $(MODFLAGS)
 
