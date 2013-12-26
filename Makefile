@@ -42,6 +42,9 @@ playaiff6: playaiff6.o
 playaiff7: playaiff7.o
 	$(CC) -o $@ $< $(FLAGS) $(SNDFLAGS)
 
+playaiff8: playaiff8.o
+	$(CC) -o $@ $< $(FLAGS) $(SNDFLAGS) -lsamplerate
+
 playmod1: playmod1.o
 	$(CC) -o $@ $< $(FLAGS) $(MODFLAGS)
 
@@ -54,5 +57,6 @@ playogg: playogg.o
 	
 clean:
 	rm -f *.o $(TARGET) playaiff1 playaiff2 playaiff3 playaiff4 playaiff5
+	rm -f playaiff6 playaiff7 playaiff8
 	rm -f playmod1 playmod2
 	rm -f playogg
