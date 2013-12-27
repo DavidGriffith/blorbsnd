@@ -19,6 +19,9 @@
 #include <samplerate.h>
 #include <math.h>
 
+#define DEFAULT_CONVERTER SRC_SINC_MEDIUM_QUALITY
+#define NEW_RATE 44100
+
 #define BUFFSIZE 4096
 #define MAX(x,y) ((x)>(y)) ? (x) : (y)
 #define MIN(x,y) ((x)<(y)) ? (x) : (y)
@@ -59,19 +62,23 @@ int playfile(FILE *fp, int vol)
     int count;
     int toread;
     int readnow;
-    short *shortbuffer;
     float *floatbuffer;
-    short *newbuffer;
+    float *floatbuffer2;
+    short *shortbuffer;
     long filestart;
 
     int volcount;
 
     ao_device *device;
     ao_sample_format format;
-
     SNDFILE     *sndfile;
-    SF_INFO     sf_info;
+    SF_INFO	sf_info;
 
+    SRC_STATE	*src_state;
+    SRC_DATA	src_data;
+    int		error;
+    double	max = 0.0;
+    sf_count_t	output_count = 0;
 
     ao_initialize();
     default_driver = ao_default_driver_id();
@@ -87,7 +94,8 @@ int playfile(FILE *fp, int vol)
     format.byte_format = AO_FMT_NATIVE;
     format.bits = 16;
     format.channels = sf_info.channels;
-    format.rate = sf_info.samplerate;
+//    format.rate = sf_info.samplerate;
+    format.rate = NEW_RATE;
 
     device = ao_open_live(default_driver, &format, NULL /* no options */);
     if (device == NULL) {
@@ -98,32 +106,62 @@ int playfile(FILE *fp, int vol)
     if (vol < 1) vol = 1;
     if (vol > 8) vol = 8;
 
-    shortbuffer = malloc(BUFFSIZE * sf_info.channels * sizeof(short));
-    newbuffer = malloc(BUFFSIZE * sf_info.channels * sizeof(short));
     floatbuffer = malloc(BUFFSIZE * sf_info.channels * sizeof(float));
+    floatbuffer2 = malloc(BUFFSIZE * sf_info.channels * sizeof(float));
+    shortbuffer = malloc(BUFFSIZE * sf_info.channels * sizeof(short));
     frames_read = 0;
     toread = sf_info.frames * sf_info.channels;
 
-    while (toread > 0) {
-	if (toread < BUFFSIZE * sf_info.channels)
-	    count = toread;
-	else
-	    count = BUFFSIZE * sf_info.channels;
-
-        frames_read = sf_read_short(sndfile, shortbuffer, count);
-
-printf("Frames to go:    %zu\n", toread);
-printf("Frames read:     %zu\n\n", frames_read);
-
-	pcm16tofloat(floatbuffer, shortbuffer, frames_read);
-	floattopcm16(newbuffer, floatbuffer, frames_read);
-
-	for (volcount = 0; volcount <= frames_read; volcount++)
-	    shortbuffer[volcount] /= mypower(2, -vol + 8);
-
-        ao_play(device, (char *)newbuffer, frames_read * sizeof(short));
-	toread = toread - frames_read;
+    /* Set up for conversion */
+    if ((src_state = src_new(DEFAULT_CONVERTER, sf_info.channels, &error)) == NULL) {
+	printf("Error: src_new() failed: %s.\n", src_strerror(error));
+	exit(1);
     }
+    src_data.end_of_input = 0;
+    src_data.input_frames = 0;
+    src_data.data_in = floatbuffer;
+    src_data.src_ratio = (1.0 * NEW_RATE) / sf_info.samplerate;
+    src_data.data_out = floatbuffer2;
+    src_data.output_frames = BUFFSIZE / sf_info.channels;
+
+    while (1) {
+	/* if floatbuffer is empty, refill it */
+	if (src_data.input_frames == 0) {
+	    src_data.input_frames = sf_read_float(sndfile, floatbuffer, BUFFSIZE / sf_info.channels);
+	    src_data.data_in = floatbuffer;
+	    printf("Frames read: %d\n", src_data.input_frames);
+
+	    /* mark end of input */
+	    if (src_data.input_frames < BUFFSIZE / sf_info.channels)
+		src_data.end_of_input = SF_TRUE;
+	}
+
+	if ((error = src_process(src_state, &src_data))) {
+	    printf("Error: %s\n", src_strerror(error));
+	    exit(1);
+	}
+
+	/* terminate if done */
+	if (src_data.end_of_input && src_data.output_frames_gen == 0)
+	    break;
+
+	/* apply gain */
+
+	/* write output */
+	floattopcm16(shortbuffer, floatbuffer2, src_data.output_frames_gen);
+	output_count += src_data.output_frames_gen;
+	src_data.data_in += src_data.input_frames_used * sf_info.channels;
+	src_data.input_frames -= src_data.input_frames_used;
+
+//	for (volcount = 0; volcount <= frames_read; volcount++)
+//	    shortbuffer[volcount] /= mypower(2, -vol + 8);
+
+        ao_play(device, (char *)shortbuffer, src_data.output_frames_gen * sizeof(short));
+
+
+    }
+
+    src_state = src_delete(src_state);
 
     free(shortbuffer);
     free(floatbuffer);
