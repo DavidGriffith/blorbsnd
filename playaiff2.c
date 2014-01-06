@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
     ao_play(device, (char *)buffer, sf_info.frames * sizeof(int));
     ao_close(device);
     ao_shutdown();
-
+    free(buffer);
     sf_close(sndfile);
 
     return 0;
