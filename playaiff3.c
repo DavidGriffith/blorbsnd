@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     playfile(fp);
     playfile(fp);
 
-
+    fclose(fp);
 }
 
 int playfile(FILE *fp)
@@ -47,7 +47,6 @@ int playfile(FILE *fp)
 
     SNDFILE     *sndfile;
     SF_INFO     sf_info;
-
 
     ao_initialize();
     default_driver = ao_default_driver_id();
@@ -76,6 +75,7 @@ int playfile(FILE *fp)
     ao_play(device, (char *)buffer, sf_info.frames * sizeof(int));
     ao_close(device);
     ao_shutdown();
+    free(buffer);
 
     sf_close(sndfile);
 

@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
 	volume = atoi(argv[2]);
 
     playfile(fp, volume);
+    fclose(fp);
 
     return 0;
 }

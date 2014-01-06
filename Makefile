@@ -1,7 +1,7 @@
 CC = gcc
-TARGET = blorbsnd5
+TARGET = blorbsnd6
 OBJECT = $(TARGET).o blorblib.o
-FLAGS = -lao -ldl -lm
+FLAGS = -lao -ldl -lm -g
 WARN = -Wall
 
 SNDFLAGS = -lsndfile
@@ -45,6 +45,9 @@ playaiff7: playaiff7.o
 playaiff8: playaiff8.o
 	$(CC) -o $@ $< $(FLAGS) $(SNDFLAGS) -lsamplerate
 
+playaiff9: playaiff9.o
+	$(CC) -o $@ $< $(FLAGS) $(SNDFLAGS) -lsamplerate
+
 playmod1: playmod1.o
 	$(CC) -o $@ $< $(FLAGS) $(MODFLAGS)
 
@@ -54,9 +57,12 @@ playmod2: playmod2.o
 playogg: playogg.o
 	$(CC) -o $@ $< $(FLAGS) $(OGGFLAGS)
 
+threadtest2: threadtest2.o
+	$(CC) -o $@ $< $(FLAGS) $(SNDFLAGS) -lsamplerate -lpthread
+
 	
 clean:
 	rm -f *.o $(TARGET) playaiff1 playaiff2 playaiff3 playaiff4 playaiff5
-	rm -f playaiff6 playaiff7 playaiff8
+	rm -f playaiff6 playaiff7 playaiff8 playaiff9
 	rm -f playmod1 playmod2
 	rm -f playogg

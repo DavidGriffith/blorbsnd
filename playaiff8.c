@@ -6,7 +6,7 @@
  * 	Step 2: Set up for and invoke src_process() from libsamplerate.
  *
  * compile with
- * "gcc -o playaiff5 playaiff5.c -lao -ldl -lm -lsndfile -lsamplerate"
+ * "gcc -o playaiff8 playaiff8.c -lao -ldl -lm -lsndfile -lsamplerate"
  *
  */
 
@@ -17,45 +17,46 @@
 #include <ao/ao.h>
 #include <sndfile.h>
 #include <samplerate.h>
-#include <math.h>
 
 #define DEFAULT_CONVERTER SRC_SINC_MEDIUM_QUALITY
-#define NEW_RATE 44100
+#define NEW_RATE 11025
 
 #define BUFFSIZE 4096
 #define MAX(x,y) ((x)>(y)) ? (x) : (y)
 #define MIN(x,y) ((x)<(y)) ? (x) : (y)
 
 int playfile(FILE *, int);
-int mypower(int, int);
 void floattopcm16(short *, float *, int);
 void pcm16tofloat(float *, short *, int);
 
 int main(int argc, char *argv[])
 {
     FILE *fp;
-    int volume = 8;
+    int newrate;
 
     if (argc < 2) {
-	printf("usage: %s <filename> <volume>\n", argv[0]);
+	printf("usage: %s <filename>\n", argv[0]);
 	exit(1);
     }
 
     fp = fopen(argv[1], "rb");
     if (fp == NULL) {
 	printf("Cannot open %s.\n", argv[1]);
-	exit(2);
+	exit(1);
     }
 
     if (argv[2])
-	volume = atoi(argv[2]);
+	newrate = atoi(argv[2]);
+    else
+	newrate = NEW_RATE;
 
-    playfile(fp, volume);
+    playfile(fp, newrate);
+    fclose(fp);
 
     return 0;
 }
 
-int playfile(FILE *fp, int vol)
+int playfile(FILE *fp, int newrate)
 {
     int default_driver;
     int frames_read;
@@ -94,17 +95,16 @@ int playfile(FILE *fp, int vol)
     format.byte_format = AO_FMT_NATIVE;
     format.bits = 16;
     format.channels = sf_info.channels;
-//    format.rate = sf_info.samplerate;
-    format.rate = NEW_RATE;
+    format.rate = newrate;
+
+    printf("Start sample rate:  %d\n", sf_info.samplerate);
+    printf("Ending sample rate: %d\n", newrate);
 
     device = ao_open_live(default_driver, &format, NULL /* no options */);
     if (device == NULL) {
         printf("Error opening sound device.\n");
         return 1;
     }
-
-    if (vol < 1) vol = 1;
-    if (vol > 8) vol = 8;
 
     floatbuffer = malloc(BUFFSIZE * sf_info.channels * sizeof(float));
     floatbuffer2 = malloc(BUFFSIZE * sf_info.channels * sizeof(float));
@@ -117,19 +117,20 @@ int playfile(FILE *fp, int vol)
 	printf("Error: src_new() failed: %s.\n", src_strerror(error));
 	exit(1);
     }
+
     src_data.end_of_input = 0;
     src_data.input_frames = 0;
     src_data.data_in = floatbuffer;
-    src_data.src_ratio = (1.0 * NEW_RATE) / sf_info.samplerate;
+    src_data.src_ratio = (1.0 * newrate) / sf_info.samplerate;
     src_data.data_out = floatbuffer2;
     src_data.output_frames = BUFFSIZE / sf_info.channels;
+    src_data.output_frames_gen = 0;
 
     while (1) {
 	/* if floatbuffer is empty, refill it */
 	if (src_data.input_frames == 0) {
 	    src_data.input_frames = sf_read_float(sndfile, floatbuffer, BUFFSIZE / sf_info.channels);
 	    src_data.data_in = floatbuffer;
-	    printf("Frames read: %d\n", src_data.input_frames);
 
 	    /* mark end of input */
 	    if (src_data.input_frames < BUFFSIZE / sf_info.channels)
@@ -145,19 +146,13 @@ int playfile(FILE *fp, int vol)
 	if (src_data.end_of_input && src_data.output_frames_gen == 0)
 	    break;
 
-	/* apply gain */
-
 	/* write output */
-	floattopcm16(shortbuffer, floatbuffer2, src_data.output_frames_gen);
 	output_count += src_data.output_frames_gen;
 	src_data.data_in += src_data.input_frames_used * sf_info.channels;
 	src_data.input_frames -= src_data.input_frames_used;
 
-//	for (volcount = 0; volcount <= frames_read; volcount++)
-//	    shortbuffer[volcount] /= mypower(2, -vol + 8);
-
+	floattopcm16(shortbuffer, floatbuffer2, src_data.output_frames_gen);
         ao_play(device, (char *)shortbuffer, src_data.output_frames_gen * sizeof(short));
-
 
     }
 
@@ -165,6 +160,7 @@ int playfile(FILE *fp, int vol)
 
     free(shortbuffer);
     free(floatbuffer);
+    free(floatbuffer2);
     fseek(fp, filestart, SEEK_SET);
     ao_close(device);
     sf_close(sndfile);
@@ -179,8 +175,8 @@ int playfile(FILE *fp, int vol)
 void floattopcm16(short *outbuf, float *inbuf, int length)
 {
     int   count;
-
     const float mul = (32768.0f);
+
     for (count = 0; count <= length; count++) {
 	int32_t tmp = (int32_t)(mul * inbuf[count]);
 	tmp = MAX( tmp, -32768 ); // CLIP < 32768
@@ -191,24 +187,14 @@ void floattopcm16(short *outbuf, float *inbuf, int length)
 
 
 /* Convert the buffer to floats. (before resampling) */
+/*
 void pcm16tofloat(float *outbuf, short *inbuf, int length)
 {
     int   count;
-
     const float div = (1.0f/32768.0f);
+
     for (count = 0; count <= length; count++) {
 	outbuf[count] = div * (float) inbuf[count];
     }
 }
-
-int mypower(int base, int exp) {
-    if (exp == 0)
-	return 1;
-    else if (exp % 2)
-	return base * mypower(base, exp - 1);
-    else {
- 	int temp = mypower(base, exp / 2);
-	return temp * temp;
-    }
-}
-
+*/

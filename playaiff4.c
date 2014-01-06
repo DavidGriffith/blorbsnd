@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
     }
 
     playfile(fp);
+    fclose(fp);
 
     return 0;
 }
@@ -106,6 +107,7 @@ int playfile(FILE *fp)
     ao_close(device);
     sf_close(sndfile);
     ao_shutdown();
+    free(buffer);
     printf("Finished\n");
 
     return 0;
