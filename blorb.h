@@ -17,7 +17,14 @@
     
 /* #define BLORB_BIG_ENDIAN */
 #define BLORB_LITTLE_ENDIAN
-typedef unsigned long uint32;
+
+#include <limits.h>
+#if UINT_MAX == (1UL<<32)-1UL
+typedef unsigned int  uint32;
+#else
+typedef unsigned long  uint32;
+#endif
+
 typedef unsigned short uint16;
 
 /* End of things you have to edit. */
@@ -33,12 +40,13 @@ typedef unsigned short uint16;
 typedef int bb_err_t;
 
 #define bb_err_None (0)
-#define bb_err_CompileTime (1)
-#define bb_err_Alloc (2)
-#define bb_err_Read (3)
-#define bb_err_NotAMap (4)
-#define bb_err_Format (5)
-#define bb_err_NotFound (6)
+#define bb_err_Endian (1)
+#define bb_err_BasicTypes (2)
+#define bb_err_Alloc (3)
+#define bb_err_Read (4)
+#define bb_err_NotAMap (5)
+#define bb_err_Format (6)
+#define bb_err_NotFound (7)
 
 /* Methods for loading a chunk */
 #define bb_method_DontLoad (0)
