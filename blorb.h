@@ -40,13 +40,12 @@ typedef unsigned short uint16;
 typedef int bb_err_t;
 
 #define bb_err_None (0)
-#define bb_err_Endian (1)
-#define bb_err_BasicTypes (2)
-#define bb_err_Alloc (3)
-#define bb_err_Read (4)
-#define bb_err_NotAMap (5)
-#define bb_err_Format (6)
-#define bb_err_NotFound (7)
+#define bb_err_CompileTime (1)
+#define bb_err_Alloc (2)
+#define bb_err_Read (3)
+#define bb_err_NotAMap (4)
+#define bb_err_Format (5)
+#define bb_err_NotFound (6)
 
 /* Methods for loading a chunk */
 #define bb_method_DontLoad (0)
