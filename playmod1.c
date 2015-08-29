@@ -3,7 +3,7 @@
  *
  * Exercise 1: Loading with libmodplug and playing with libao
  *
- * compile with "gcc -o playaiff5 playaiff5.c -lao -ldl -lm -lmodplug"
+ * compile with "gcc -o playmod1 playmod1.c -lao -lm -lmodplug"
  *
  */
 

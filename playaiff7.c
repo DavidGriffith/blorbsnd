@@ -1,9 +1,5 @@
-/*
- * Audio programming exercises
- *
- * Exercise 7: Do it with 16 bit samples instead
- *
- * compile with "gcc -o playaiff5 playaiff5.c -lao -ldl -lm -lsndfile"
+/* Converting a 1-channel stream to 2-channels
+ * compile with "gcc -o playaiff7 playaiff7.c -lao -ldl -lm -lsndfile"
  *
  */
 
@@ -13,20 +9,18 @@
 #include <limits.h>
 #include <ao/ao.h>
 #include <sndfile.h>
-#include <math.h>
 
-#define BUFFSIZE 4096
+#define BUFFSIZE 512
 
-int playfile(FILE *, int);
-int mypower(int, int);
+void stereoize(short *, short *, size_t);
+int playfile(FILE *);
 
 int main(int argc, char *argv[])
 {
     FILE *fp;
-    int volume = 8;
 
-    if (argc < 2) {
-	printf("usage: %s <filename> <volume>\n", argv[0]);
+    if (argc < 1) {
+	printf("usage: %s <filename>\n", argv[0]);
 	exit(1);
     }
 
@@ -36,16 +30,13 @@ int main(int argc, char *argv[])
 	exit(2);
     }
 
-    if (argv[2])
-	volume = atoi(argv[2]);
-
-    playfile(fp, volume);
+    playfile(fp);
     fclose(fp);
 
     return 0;
 }
 
-int playfile(FILE *fp, int vol)
+int playfile(FILE *fp)
 {
     int default_driver;
     int frames_read;
@@ -53,9 +44,8 @@ int playfile(FILE *fp, int vol)
     int toread;
     int readnow;
     short *buffer;
+    short *groovy;
     long filestart;
-
-    int volcount;
 
     ao_device *device;
     ao_sample_format format;
@@ -77,19 +67,22 @@ int playfile(FILE *fp, int vol)
 
     format.byte_format = AO_FMT_NATIVE;
     format.bits = 16;
-    format.channels = sf_info.channels;
     format.rate = sf_info.samplerate;
+//    format.channels = sf_info.channels;
+    format.channels = 2;
 
-    device = ao_open_live(default_driver, &format, NULL /* no options */);
+    printf("Channels: %d\n", sf_info.channels);
+    printf("Samplerate: %d\n", sf_info.samplerate);
+
+    device = ao_open_live(default_driver, &format, NULL);
     if (device == NULL) {
         printf("Error opening sound device.\n");
         return 1;
     }
 
-    if (vol < 1) vol = 1;
-    if (vol > 8) vol = 8;
+    buffer = malloc(BUFFSIZE * sf_info.channels * sizeof(short));
+    groovy = malloc(BUFFSIZE * 2 * sizeof(short));
 
-    buffer = malloc(BUFFSIZE * sf_info.channels * sizeof(int));
     frames_read = 0;
     toread = sf_info.frames * sf_info.channels;
 
@@ -101,17 +94,17 @@ int playfile(FILE *fp, int vol)
 
         frames_read = sf_read_short(sndfile, buffer, count);
 
-printf("Frames to go:    %zu\n", toread);
-printf("Frames read:     %zu\n\n", frames_read);
+	if (sf_info.channels == 1)
+	    stereoize(groovy, buffer, count * sizeof(short));
+	else
+	    memcpy(groovy, buffer, count * sizeof(short));
 
-	for (volcount = 0; volcount <= frames_read; volcount++)
-	    buffer[volcount] /= mypower(2, -vol + 8);
-
-        ao_play(device, (char *)buffer, frames_read * sizeof(short));
+        ao_play(device, (char *)groovy, frames_read * sizeof(short));
 	toread = toread - frames_read;
     }
 
     free(buffer);
+    free(groovy);
     fseek(fp, filestart, SEEK_SET);
     ao_close(device);
     sf_close(sndfile);
@@ -121,14 +114,14 @@ printf("Frames read:     %zu\n\n", frames_read);
     return 0;
 }
 
+void stereoize(short *outbuf, short *inbuf, size_t length)
+{
+    int count;
+    int outcount;
 
-int mypower(int base, int exp) {
-    if (exp == 0)
-	return 1;
-    else if (exp % 2)
-	return base * mypower(base, exp - 1);
-    else {
- 	int temp = mypower(base, exp / 2);
-	return temp * temp;
+    outcount = 0;
+    for (count = 0; count <= length; count++) {
+	outbuf[outcount] = outbuf[outcount+1] = inbuf[count];
+	outcount += 2;
     }
 }

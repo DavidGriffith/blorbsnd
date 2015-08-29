@@ -3,7 +3,7 @@
  *
  * Exercise 1: AIFF player with headers parsed manually
  *
- * compile with "gcc -o playaiff playaiff.c -lao -ldl -lm"
+ * compile with "gcc -o playaiff1 playaiff1.c -lao -ldl -lm"
  *
  */
 

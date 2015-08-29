@@ -38,10 +38,11 @@ int main(int argc, char *argv[])
     int volume = 8;
     bb_map_t *blorbMap;
     bb_result_t resource;
+    bb_err_t blorb_err;
 
-    if (argv[2])
+    if (argc >= 2) {
 	number = atoi(argv[2]);
-    else
+    } else
 	usage();
 
     if (argv[3])
@@ -49,11 +50,21 @@ int main(int argc, char *argv[])
     else
 	volume = 8;
 
+    blorbMap = NULL;
+
+    printf("Opening %s\n", argv[1]);
     blorbFile = fopen(argv[1], "rb");
-    if (blorbFile == NULL)
+    if (blorbFile == NULL) {
+	printf("Cannot open %s\n", argv[1]);
 	exit(1);
-    if (bb_create_map(blorbFile, &blorbMap) != bb_err_None)
+    }
+    blorb_err = bb_create_map(blorbFile, &blorbMap);
+
+    if (blorb_err != bb_err_None) {
+	printf("Unable to build Blorb map.  Code %d\n", blorb_err);
 	exit(1);
+    }
+
 
     if (bb_load_resource(blorbMap, bb_method_FilePos, &resource, bb_ID_Snd, number) == bb_err_None) {
 	printf("Sound resource %d is ",number);

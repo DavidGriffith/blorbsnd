@@ -3,7 +3,7 @@
  *
  * Exercise 6: Reverting back to using my own routines for parsing AIFF.
  *
- * compile with "gcc -o playaiff5 playaiff5.c -lao -ldl -lm -lsndfile"
+ * compile with "gcc -o playaiff6 playaiff6.c -lao -ldl"
  *
  */
 
@@ -12,7 +12,6 @@
 #include <string.h>
 #include <limits.h>
 #include <ao/ao.h>
-#include <math.h>
 
 #define gshort( b) (((int)((b)[0]) << 8) + (int)((b)[1]))
 #define glong( b) (((int)((b)[0]) << 24) + ((int)((b)[1]) << 16) +\
@@ -91,10 +90,10 @@ int playaiff(FILE *fp, int vol)
     format.bits = info.samplesize;
     format.channels = info.channels;
     format.rate = info.samplerate;
-    format.byte_format = AO_FMT_BIG;
+    format.byte_format = AO_FMT_NATIVE;
 
-info.samplerate = 11025;
-format.rate = 11025;
+//info.samplerate = 11025;
+//format.rate = 11025;
 
 printf("bits:      %d\n", info.samplesize);
 printf("channels:  %d\n", info.channels);
