@@ -14,10 +14,10 @@ MYFLAGS = $(SNDFLAGS) $(MODFLAGS) $(OGGFLAGS)
 #$(TARGET):	$(TARGET).c
 #	$(CC) -o $(TARGET) $(TARGET).c blorblib.a $(FLAGS) $(MYFLAGS)
 
-blorbsnd4:	blorbsnd4.c
+blorbsnd4:	blorbsnd4.c blorblib
 	$(CC) -o blorbsnd4 blorbsnd4.c blorblib.a $(FLAGS) $(MYFLAGS)
 
-blorbsnd5:	blorbsnd5.c
+blorbsnd5:	blorbsnd5.c blorblib
 	$(CC) -o blorbsnd5 blorbsnd5.c blorblib.a $(FLAGS) $(MYFLAGS)
 
 blorblib:
