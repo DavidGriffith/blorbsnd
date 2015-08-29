@@ -14,8 +14,10 @@ MYFLAGS = $(SNDFLAGS) $(MODFLAGS) $(OGGFLAGS)
 $(TARGET):	$(TARGET).c
 	$(CC) -o $(TARGET) $(TARGET).c blorblib.a $(FLAGS) $(MYFLAGS)
 
-#blorblib:
-#	$(CC) -o blorblib.o -c blorblib.c
+blorblib:
+	$(CC) -o blorblib.o -c blorblib.c
+	ar rc blorblib.a blorblib.o
+	ranlib blorblib.a
 	
 clean:
 	rm -f *.o $(TARGET) playaiff1 playaiff2 playaiff3 playaiff4 playaiff5
